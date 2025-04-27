@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  dev:
+    build:
+      context: .
+      target: development
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+      - POETRY_HTTP_TIMEOUT=300
+      - PIP_DEFAULT_TIMEOUT=300
+      - POETRY_VIRTUALENVS_CREATE=false
+      - PYTHONUNBUFFERED=1
+    network_mode: "host"
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+
+  app:
+    build:
+      context: .
+      target: production
+    volumes:
+      - ./data:/app/data:rw
+    environment:
+      - PYTHONPATH=/app
+      - POETRY_HTTP_TIMEOUT=300
+      - PIP_DEFAULT_TIMEOUT=300
+      - POETRY_VIRTUALENVS_CREATE=false
+      - PYTHONUNBUFFERED=1
