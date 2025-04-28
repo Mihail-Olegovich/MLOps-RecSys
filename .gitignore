@@ -38,3 +38,6 @@ htmlcov/
 data/
 logs/
 models/
+
+
+!.nojekyll

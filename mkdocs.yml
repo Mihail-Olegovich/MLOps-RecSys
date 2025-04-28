@@ -1,0 +1,36 @@
+site_name: MLOps-RecSys
+site_description: MLOps practices for recommender systems
+site_url: https://Mihail-Olegovich.github.io/MLOps-RecSys/
+repo_url: https://github.com/Mihail-Olegovich/MLOps-RecSys
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: indigo
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.expand
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Setup: setup.md
+  - GitHub Flow: workflow.md
+  - Docker: docker.md
+  - CI/CD Pipeline: ci-cd.md
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed
+  - pymdownx.critic
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+site_dir: site
+
+plugins:
+  - search

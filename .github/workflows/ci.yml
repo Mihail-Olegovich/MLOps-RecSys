@@ -184,15 +184,22 @@ jobs:
       - name: Setup documentation
         run: |
           mkdir -p docs
+          touch docs/.nojekyll
           echo "# MLOps-RecSys Project" > docs/index.md
           echo "site_name: MLOps-RecSys" > mkdocs.yml
           echo "theme: material" >> mkdocs.yml
+          echo "site_dir: site" >> mkdocs.yml
 
       - name: Build documentation
         run: poetry run mkdocs build
+
+      - name: Prepare for GitHub Pages
+        run: |
+          touch site/.nojekyll
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./site
+          enable_jekyll: false
