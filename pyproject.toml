@@ -66,5 +66,9 @@ module = "tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
+[[tool.mypy.overrides]]
+module = ["implicit.*", "rectools.*"]
+ignore_missing_imports = true
+
 [tool.poetry.scripts]
 mloprec = "mloprec.cli:main"
