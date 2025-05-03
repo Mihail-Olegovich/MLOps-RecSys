@@ -1,0 +1,5 @@
+outs:
+- md5: 5130cb10da5ea765a1a931b749e1f812
+  size: 48909741
+  hash: md5
+  path: fclickstream.csv
