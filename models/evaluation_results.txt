@@ -1,0 +1,8 @@
+Model Evaluation Results
+======================
+
+ALS:
+  Recall@40: 0.1453
+
+LightFM:
+  Recall@40: 0.1180
