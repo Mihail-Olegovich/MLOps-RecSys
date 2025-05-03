@@ -1,4 +1,4 @@
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
 # Set up environment
 ENV PYTHONFAULTHANDLER=1 \
@@ -19,7 +19,7 @@ RUN pip install --upgrade pip && \
 COPY pyproject.toml ./
 COPY poetry.lock ./
 
-FROM base as development
+FROM base AS development
 
 # Install development dependencies
 RUN poetry install --no-interaction --no-ansi
@@ -27,13 +27,22 @@ RUN poetry install --no-interaction --no-ansi
 # Copy project files
 COPY . .
 
-FROM base as production
+FROM base AS production
 
-# Only install production dependencies
-RUN poetry install --without dev --no-interaction --no-ansi
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir --upgrade pip && \
+    poetry config installer.max-workers 4 && \
+    poetry install --without dev --no-interaction --no-ansi --no-root || true && \
+    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 # Copy project files
 COPY . .
+
+
+RUN pip install -e .
 
 # Create data directory with appropriate permissions
 RUN mkdir -p /app/data && \
