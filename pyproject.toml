@@ -7,13 +7,14 @@ readme = "README.md"
 packages = [{include = "mloprec"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.10,<3.13"
 numpy = "^1.24.0"
 pandas = "^2.0.0"
 scikit-learn = "^1.2.0"
 torch = "^2.0.0"
 mkdocs-material = "^9.6.12"
 dvc = "^3.59.1"
+rectools = {extras = ["lightfm"], version = "^0.13.0"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.12.0"
@@ -30,12 +31,12 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 88
-target-version = ['py311']
+target-version = ['py310']
 include = '\.pyi?$'
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py310"
 select = ["E", "F", "I", "B", "W", "C4", "UP", "N", "ANN", "D"]
 ignore = ["ANN101", "D203", "D212"]
 
@@ -49,7 +50,7 @@ allow-star-arg-any = true
 convention = "google"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.10"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true

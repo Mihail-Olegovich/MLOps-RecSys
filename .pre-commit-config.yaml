@@ -24,6 +24,7 @@ repos:
       - id: mypy
         name: mypy
         entry: poetry run mypy
+        args: [--disable-error-code=import-untyped]
         language: system
         types: [python]
         require_serial: true
