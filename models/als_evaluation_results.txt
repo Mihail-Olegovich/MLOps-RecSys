@@ -1,0 +1,9 @@
+ALS Evaluation Results
+======================
+
+  Recall@40: 0.1430 # md5: e47ba1a6614e732d9f9380f707f57a85
+
+ALS Evaluation Results
+======================
+
+  Recall@40: 0.1453 # md5: 36dda57b20a6009044e1f01bcbbdbf0f
