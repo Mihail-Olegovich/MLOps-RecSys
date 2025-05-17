@@ -103,3 +103,40 @@ The pipeline is triggered on:
 - Pull requests to `main`
 - Pushes to `main`
 - Tag pushes (for releases)
+
+## Data Version Control with DVC
+
+This project uses Data Version Control (DVC) to manage and version datasets and models. DVC helps track changes to data files without storing them in Git.
+
+### Getting Started with DVC
+
+1. Install DVC (if not already installed):
+   ```bash
+   pip install dvc
+   # For S3 support
+   pip install 'dvc[s3]'
+   ```
+
+2. Initialize DVC in the project (already done):
+   ```bash
+   dvc init
+   ```
+
+### Working with Data
+
+1. Add data files to DVC:
+   ```bash
+   dvc add data/cat_features.csv data/event.csv data/fclickstream.csv
+   ```
+
+2. Push data to remote storage:
+   ```bash
+   dvc push
+   ```
+
+3. Pull data from remote storage:
+   ```bash
+   dvc pull
+   ```
+
+Always commit the generated `.dvc` files to Git to track the versions of your datasets and models while keeping the large files themselves outside of the Git repository.

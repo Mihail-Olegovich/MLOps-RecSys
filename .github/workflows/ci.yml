@@ -181,15 +181,6 @@ jobs:
           poetry install --no-interaction --no-root
           poetry add mkdocs-material
 
-      - name: Setup documentation
-        run: |
-          mkdir -p docs
-          touch docs/.nojekyll
-          echo "# MLOps-RecSys Project" > docs/index.md
-          echo "site_name: MLOps-RecSys" > mkdocs.yml
-          echo "theme: material" >> mkdocs.yml
-          echo "site_dir: site" >> mkdocs.yml
-
       - name: Build documentation
         run: poetry run mkdocs build
 
