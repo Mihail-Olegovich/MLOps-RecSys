@@ -15,6 +15,7 @@ torch = "^2.0.0"
 mkdocs-material = "^9.6.12"
 dvc = "^3.59.1"
 rectools = {extras = ["lightfm"], version = "^0.13.0"}
+apache-airflow = "^2.8.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.12.0"

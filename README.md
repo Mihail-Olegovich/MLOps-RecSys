@@ -140,3 +140,122 @@ This project uses Data Version Control (DVC) to manage and version datasets and 
    ```
 
 Always commit the generated `.dvc` files to Git to track the versions of your datasets and models while keeping the large files themselves outside of the Git repository.
+
+## Apache Airflow
+
+### Installation and Setup
+
+To install and run Apache Airflow with project integration:
+
+1. Add Airflow to your project dependencies (already done in pyproject.toml):
+   ```bash
+   poetry add apache-airflow
+   ```
+
+2. Update the lock file:
+   ```bash
+   poetry lock
+   ```
+
+3. Launch Airflow using Docker Compose:
+   ```bash
+   docker-compose -f docker-compose-airflow.yml up -d
+   ```
+
+4. Initialize database and create admin user:
+   ```bash
+   docker exec -it mlops-recsys-airflow-1 airflow db init
+   docker exec -it mlops-recsys-airflow-1 airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin
+   ```
+
+5. Access the Airflow UI at http://localhost:8080
+   - Username: admin
+   - Password: admin
+
+6. To stop Airflow:
+   ```bash
+   docker-compose -f docker-compose-airflow.yml down
+   ```
+
+### Project Structure for Airflow
+
+- `docker-compose-airflow.yml` - Docker Compose configuration for Airflow
+- `airflow.Dockerfile` - Dockerfile specifically for Airflow
+- `requirements-airflow.txt` - Dependencies for the Airflow container
+- `dags/` - Directory for Airflow DAG files
+- `logs/` - Directory for logs
+- `plugins/` - Directory for plugins
+- `data/` - Directory for data shared between the project and Airflow
+
+### Creating DAGs
+To create new DAGs, simply add new Python files to the `dags/` directory.
+
+### Working with DAGs
+
+1. List available DAGs:
+   ```bash
+   docker exec -it mlops-recsys-airflow-1 airflow dags list
+   ```
+
+2. Trigger a DAG run:
+   ```bash
+   docker exec -it mlops-recsys-airflow-1 airflow dags trigger mloprec_train_pipeline
+   ```
+
+3. Unpause a DAG:
+   ```bash
+   docker exec -it mlops-recsys-airflow-1 airflow dags unpause mloprec_train_pipeline
+   ```
+
+### Integration with MLOps-RecSys Project
+
+The Airflow setup is integrated with the MLOps-RecSys project in the following ways:
+
+1. The Airflow container has access to the entire project code
+2. Required dependencies are installed in the Airflow container
+3. DAGs can import and use functions from the `mloprec` package
+4. It shares the data directory with the main project
+
+### Architecture
+
+The Airflow setup consists of the following components:
+
+1. PostgreSQL database for metadata storage
+2. Airflow webserver for UI access
+3. Airflow scheduler for running DAGs
+4. Shared volumes for DAGs, logs, and data
+
+The containers communicate via a dedicated Docker network.
+
+### MLOps Pipelines with Airflow and DVC
+
+The project includes a complete ML pipeline for training and evaluating recommendation models using Airflow and DVC:
+
+1. **DVC Integration**:
+   - The project uses Data Version Control (DVC) to track data and models
+   - Integration ensures that all artifacts are properly versioned
+   - The pipeline automatically tracks input data, models, and evaluation results
+
+2. **Recommendation System Pipeline**:
+   - `recsys_training_pipeline`: A DAG that runs the entire ML lifecycle
+   - Pipeline steps include data preparation, model training, evaluation, and versioning
+   - All files are tracked with DVC and pushed to remote storage
+
+3. **Setting up DVC in Airflow**:
+   - `dvc_init`: A DAG for initializing DVC and configuring remote storage
+   - Run this DAG first to set up DVC in the Airflow environment
+   - This only needs to be run once for initial setup
+
+4. **Running the Pipeline**:
+   ```bash
+   # Initialize DVC for the first time
+   docker exec -it mlops-recsys-airflow-1 airflow dags trigger dvc_init
+
+   # Run the full recommendation system pipeline
+   docker exec -it mlops-recsys-airflow-1 airflow dags trigger recsys_training_pipeline
+   ```
+
+5. **Viewing Results**:
+   - Check pipeline status in the Airflow UI at http://localhost:8080
+   - Model evaluation results are stored in `models/als_evaluation_results.txt`
+   - Both data and models are versioned with DVC
