@@ -1,0 +1,4 @@
+LightFM Evaluation Results
+==========================
+
+  Recall@40: 0.1180

@@ -1,4 +1,4 @@
-"""Evaluate ALS model with features."""
+"""Evaluate LightFM model without features."""
 
 from typing import Any
 
@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from rectools.dataset import Dataset
 from rectools.metrics import Recall, calc_metrics
-from rectools.models import ImplicitALSWrapperModel
+from rectools.models import LightFMWrapperModel
 
 from mloprec.tracking import (
     get_model_from_clearml,
@@ -19,13 +19,13 @@ from mloprec.tracking import (
 K_RECOS = 40
 
 
-def load_model(model_path: str) -> ImplicitALSWrapperModel:
+def load_model(model_path: str) -> LightFMWrapperModel:
     """Load model from pickle file."""
-    return ImplicitALSWrapperModel.load(model_path)
+    return LightFMWrapperModel.load(model_path)
 
 
 def evaluate_model(
-    model: ImplicitALSWrapperModel,
+    model: LightFMWrapperModel,
     dataset: Dataset,
     df_eval: pd.DataFrame,
     catalog: list[Any] | pd.Series | np.ndarray,
@@ -56,7 +56,7 @@ def main() -> None:
     """Evaluate and compare different recommendation models."""
     # Initialize ClearML task
     task = init_task(
-        task_name="ALS with Features Evaluation",
+        task_name="LightFM without Features Evaluation",
         task_type="testing",
     )
 
@@ -64,21 +64,11 @@ def main() -> None:
     import subprocess
 
     subprocess.run(
-        [
-            "dvc",
-            "pull",
-            "data/train.csv.dvc",
-            "data/eval.csv.dvc",
-            "data/cat_features.csv.dvc",
-        ],
-        check=True,
+        ["dvc", "pull", "data/train.csv.dvc", "data/eval.csv.dvc"], check=True
     )
 
     df_train = pd.read_csv("data/train.csv")
     df_eval = pd.read_csv("data/eval.csv")
-    df_features = pd.read_csv("data/cat_features.csv")
-
-    df_features = df_features.rename(columns={"node": "item_id"})
 
     df_eval.rename(columns={"cookie": "user_id", "node": "item_id"}, inplace=True)
 
@@ -94,7 +84,8 @@ def main() -> None:
     catalog = df_train["item_id"].unique().tolist()
 
     model_path = get_model_from_clearml(
-        model_name="ALS Model with Features", task_id="96995ffcea6e47f3804054347ffe9ea4"
+        model_name="LightFM Model without Features",
+        task_id="66d8e4606ac840678704a68f0d823309",
     )
     task.get_logger().report_text(f"Модель загружена из ClearML: {model_path}")
 
@@ -102,8 +93,6 @@ def main() -> None:
 
     dataset = Dataset.construct(
         interactions_df=df_train,
-        item_features_df=df_features,
-        cat_item_features=["category"],
     )
 
     results = evaluate_model(model, dataset, df_eval, catalog)
@@ -113,15 +102,17 @@ def main() -> None:
         log_metrics(task, "Evaluation Metrics", metric_name, value)
 
     # Save results to file
-    with open("models/als_evaluation_results.txt", "a") as f:
-        f.write("ALS Evaluation Results\n")
-        f.write("======================\n\n")
+    with open("models/lightfm_without_feat_evaluation_results.txt", "a") as f:
+        f.write("LightFM Evaluation Results\n")
+        f.write("==========================\n\n")
         for metric_name, value in results.items():
             f.write(f"  {metric_name}: {value:.4f}\n")
         f.write("\n")
 
     # Log results file as artifact
-    log_artifact(task, "evaluation_results", "models/als_evaluation_results.txt")
+    log_artifact(
+        task, "evaluation_results", "models/lightfm_without_feat_evaluation_results.txt"
+    )
 
     # Complete the task
     task.close()

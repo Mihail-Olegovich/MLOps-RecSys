@@ -1,0 +1,4 @@
+ALS Evaluation Results
+======================
+
+  Recall@40: 0.1410
