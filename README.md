@@ -140,3 +140,50 @@ This project uses Data Version Control (DVC) to manage and version datasets and 
    ```
 
 Always commit the generated `.dvc` files to Git to track the versions of your datasets and models while keeping the large files themselves outside of the Git repository.
+
+## Experiment Tracking with ClearML
+
+This project uses ClearML for experiment tracking, model management, and MLOps automation. ClearML helps track, compare, and visualize machine learning experiments.
+
+### Setting up ClearML
+
+1. Install ClearML:
+   ```bash
+   pip install clearml
+   # or with Poetry
+   poetry add clearml
+   ```
+
+2. Configure ClearML credentials:
+   ```bash
+   clearml-init
+   ```
+
+   Alternatively, you can use the existing configuration file (`clearml.conf`) located in your home directory.
+
+### Using ClearML for Experiment Tracking
+
+1. Import ClearML in your training scripts:
+   ```python
+   from clearml import Task
+
+   # Initialize a new task (experiment)
+   task = Task.init(project_name="MLOps-RecSys", task_name="ALS Model Training")
+   ```
+
+2. Log parameters, metrics, and artifacts:
+   ```python
+   # Log hyperparameters
+   task.connect({'learning_rate': 0.01, 'batch_size': 64})
+
+   # Log metrics
+   task.logger.report_scalar(title='Metrics', series='Recall@K', value=0.85, iteration=0)
+
+   # Log artifacts
+   task.upload_artifact('model', artifact_object='path/to/model.pkl')
+   ```
+
+3. Compare experiments in the ClearML Web UI:
+   - Access your ClearML Web UI at https://app.clear.ml/
+   - Navigate to your project to view all experiments
+   - Compare metrics, parameters, and artifacts between experiments
