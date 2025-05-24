@@ -1,0 +1,4 @@
+Model,Recall@40
+LightFM without Features,0.11802656546489564
+ALS with Features,0.14299493991144843
+ALS without Features,0.14095509171410497
