@@ -39,3 +39,14 @@ build:
 requirements:
 	poetry export -f requirements.txt --output requirements.txt
 	poetry export -f requirements.txt --with dev --output requirements-dev.txt
+
+# API commands
+api-run:
+	poetry run python run_api.py
+
+api-run-with-model:
+	poetry run python run_api.py --model als_model --reload
+
+# Benchmark commands
+benchmark-simple:
+	poetry run python benchmark_simple.py --sample-size 20

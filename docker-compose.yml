@@ -1,32 +1,48 @@
-version: '3.8'
-
 services:
-  dev:
-    build:
-      context: .
-      target: development
-    volumes:
-      - .:/app
+  # ALS Model Service
+  als-service:
+    build: .
+    container_name: mlops-recsys-als
+    ports:
+      - "8001:8000"
     environment:
-      - PYTHONPATH=/app
-      - POETRY_HTTP_TIMEOUT=300
-      - PIP_DEFAULT_TIMEOUT=300
-      - POETRY_VIRTUALENVS_CREATE=false
-      - PYTHONUNBUFFERED=1
-    network_mode: "host"
-    command: /bin/bash
-    stdin_open: true
-    tty: true
+      - DEFAULT_MODEL=als_model
+      - API_TITLE=MLOps RecSys API (ALS)
+      - API_VERSION=1.0-als
+    volumes:
+      - ./data:/app/data:ro
+      - ./models:/app/models:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - recsys-network
 
-  app:
-    build:
-      context: .
-      target: production
-    volumes:
-      - ./data:/app/data:rw
+  # LightFM Model Service
+  lightfm-service:
+    build: .
+    container_name: mlops-recsys-lightfm
+    ports:
+      - "8002:8000"
     environment:
-      - PYTHONPATH=/app
-      - POETRY_HTTP_TIMEOUT=300
-      - PIP_DEFAULT_TIMEOUT=300
-      - POETRY_VIRTUALENVS_CREATE=false
-      - PYTHONUNBUFFERED=1
+      - DEFAULT_MODEL=lightfm_model
+      - API_TITLE=MLOps RecSys API (LightFM)
+      - API_VERSION=1.0-lightfm
+    volumes:
+      - ./data:/app/data:ro
+      - ./models:/app/models:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - recsys-network
+
+networks:
+  recsys-network:
+    driver: bridge

@@ -306,3 +306,134 @@ This project uses ClearML for experiment tracking, model management, and MLOps a
    - Access your ClearML Web UI at https://app.clear.ml/
    - Navigate to your project to view all experiments
    - Compare metrics, parameters, and artifacts between experiments
+
+## API Service
+
+### Overview
+
+The project includes a FastAPI-based web service that provides endpoints for:
+- Data preprocessing (integrating the `data_prep.py` logic)
+- Model management (loading and switching between models)
+- Generating recommendations
+- API statistics and health monitoring
+
+### Quick Start
+
+1. Install API dependencies:
+   ```bash
+   poetry install
+   ```
+
+2. Run the API server:
+   ```bash
+   python run_api.py
+   ```
+
+   Or with custom parameters:
+   ```bash
+   python run_api.py --host 0.0.0.0 --port 8000 --reload --model als_model
+   ```
+
+3. Access the API documentation:
+   - Swagger UI: http://localhost:8000/docs
+   - ReDoc: http://localhost:8000/redoc
+
+### API Endpoints
+
+#### Health and Status
+- `GET /` - Root endpoint with basic info
+- `GET /health` - Health check
+- `GET /api/v1/stats` - API statistics and model status
+
+#### Data Preprocessing
+- `POST /api/v1/data/prepare` - Prepare training and evaluation datasets
+  ```json
+  {
+    "eval_days_threshold": 14,
+    "force_rebuild": false
+  }
+  ```
+
+#### Model Management
+- `GET /api/v1/models` - List available models
+- `POST /api/v1/models/{model_name}/load` - Load a specific model
+- `POST /api/v1/models/{model_name}/activate` - Set model as active
+
+#### Recommendations
+- `POST /api/v1/recommend/user` - Get recommendations for a user
+  ```json
+  {
+    "user_id": 123,
+    "top_k": 10,
+    "exclude_seen": true
+  }
+  ```
+
+- `POST /api/v1/recommend/batch` - Get recommendations for multiple users
+  ```json
+  {
+    "user_ids": [123, 456, 789],
+    "top_k": 10,
+    "exclude_seen": true
+  }
+  ```
+
+#### User Validation
+- `GET /api/v1/validate/user/{user_id}` - Check if user exists in training data
+
+### Configuration
+
+The API can be configured via environment variables or the `service/api/config.py` file:
+
+```bash
+# Server settings
+export API_HOST=0.0.0.0
+export API_PORT=8000
+export API_RELOAD=true
+
+# Model settings
+export DEFAULT_MODEL=als_model
+export MODELS_DIR=models
+export DATA_DIR=data
+
+# Performance settings
+export MAX_RECOMMENDATIONS=100
+export MAX_BATCH_SIZE=1000
+```
+
+### Data Preprocessing via API
+
+The API integrates the data preprocessing logic from `mloprec/scripts/data_prep.py` into a web endpoint. This means:
+
+1. **Input Validation**: The API validates request parameters (eval_days_threshold, force_rebuild)
+2. **Data Processing**: Applies the same logic as the original script:
+   - Loads raw clickstream and event data
+   - Splits data based on time threshold
+   - Filters for contact events
+   - Creates clean train/eval datasets
+3. **Response**: Returns statistics about the processed data
+4. **Caching**: Supports using existing processed data unless force_rebuild=true
+
+### Model Integration
+
+The API supports loading and using trained models:
+
+1. **Model Loading**: Loads pickle files from the `models/` directory
+2. **Multi-Model Support**: Can load multiple models simultaneously
+3. **Model Switching**: Switch between loaded models without restarting
+4. **Preprocessing Integration**: Automatically handles data preprocessing for recommendations
+
+### Project Structure
+
+```
+service/
+├── __init__.py
+├── api/
+│   ├── __init__.py
+│   ├── app.py           # FastAPI application
+│   ├── config.py        # Configuration settings
+│   ├── schemas.py       # Pydantic models
+│   ├── services.py      # Business logic
+│   └── views.py         # API endpoints
+├── run_api.py           # Server startup script
+```

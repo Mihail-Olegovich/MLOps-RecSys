@@ -1,0 +1,88 @@
+{
+  "ALS": {
+    "stats": {
+      "api_status": "healthy",
+      "loaded_models": [
+        "als_model"
+      ],
+      "current_model": "als_model",
+      "available_models": [
+        "als_model",
+        "lightfm_model"
+      ],
+      "data_stats": {
+        "train_rows": 663475,
+        "unique_users": 92325,
+        "unique_items": 71252
+      }
+    },
+    "latency": {
+      "mean_latency": 0.02513395,
+      "median_latency": 0.023197500000000003,
+      "min_latency": 0.022366,
+      "max_latency": 0.038783,
+      "p95_latency": 0.038783,
+      "successful_requests": 20,
+      "failed_requests": 0,
+      "success_rate": 100.0
+    },
+    "batch": {
+      "1": {
+        "mean_latency": 0.024118,
+        "latency_per_user": 0.024118
+      },
+      "5": {
+        "mean_latency": 0.026593,
+        "latency_per_user": 0.0053186
+      },
+      "10": {
+        "mean_latency": 0.026905666666666668,
+        "latency_per_user": 0.002690566666666667
+      }
+    },
+    "timestamp": 1749816144.215729
+  },
+  "LightFM": {
+    "stats": {
+      "api_status": "healthy",
+      "loaded_models": [
+        "lightfm_model"
+      ],
+      "current_model": "lightfm_model",
+      "available_models": [
+        "als_model",
+        "lightfm_model"
+      ],
+      "data_stats": {
+        "train_rows": 663475,
+        "unique_users": 92325,
+        "unique_items": 71252
+      }
+    },
+    "latency": {
+      "mean_latency": 0.04101,
+      "median_latency": 0.039471000000000006,
+      "min_latency": 0.031248,
+      "max_latency": 0.053505,
+      "p95_latency": 0.053505,
+      "successful_requests": 20,
+      "failed_requests": 0,
+      "success_rate": 100.0
+    },
+    "batch": {
+      "1": {
+        "mean_latency": 0.037383,
+        "latency_per_user": 0.037383
+      },
+      "5": {
+        "mean_latency": 0.038044,
+        "latency_per_user": 0.007608800000000001
+      },
+      "10": {
+        "mean_latency": 0.039564,
+        "latency_per_user": 0.0039564000000000005
+      }
+    },
+    "timestamp": 1749816145.916484
+  }
+}
