@@ -1,4 +1,4 @@
-"""Evaluate ALS model with features."""
+"""Evaluate ALS model without features."""
 
 from typing import Any
 
@@ -56,7 +56,7 @@ def main() -> None:
     """Evaluate and compare different recommendation models."""
     # Initialize ClearML task
     task = init_task(
-        task_name="ALS with Features Evaluation",
+        task_name="ALS without Features Evaluation",
         task_type="testing",
     )
 
@@ -64,21 +64,11 @@ def main() -> None:
     import subprocess
 
     subprocess.run(
-        [
-            "dvc",
-            "pull",
-            "data/train.csv.dvc",
-            "data/eval.csv.dvc",
-            "data/cat_features.csv.dvc",
-        ],
-        check=True,
+        ["dvc", "pull", "data/train.csv.dvc", "data/eval.csv.dvc"], check=True
     )
 
     df_train = pd.read_csv("data/train.csv")
     df_eval = pd.read_csv("data/eval.csv")
-    df_features = pd.read_csv("data/cat_features.csv")
-
-    df_features = df_features.rename(columns={"node": "item_id"})
 
     df_eval.rename(columns={"cookie": "user_id", "node": "item_id"}, inplace=True)
 
@@ -94,7 +84,8 @@ def main() -> None:
     catalog = df_train["item_id"].unique().tolist()
 
     model_path = get_model_from_clearml(
-        model_name="ALS Model with Features", task_id="96995ffcea6e47f3804054347ffe9ea4"
+        model_name="ALS Model without Features",
+        task_id="89b577a641ca42168fbb975a3d63ee66",
     )
     task.get_logger().report_text(f"Модель загружена из ClearML: {model_path}")
 
@@ -102,8 +93,6 @@ def main() -> None:
 
     dataset = Dataset.construct(
         interactions_df=df_train,
-        item_features_df=df_features,
-        cat_item_features=["category"],
     )
 
     results = evaluate_model(model, dataset, df_eval, catalog)
@@ -113,7 +102,7 @@ def main() -> None:
         log_metrics(task, "Evaluation Metrics", metric_name, value)
 
     # Save results to file
-    with open("models/als_evaluation_results.txt", "a") as f:
+    with open("models/als_without_feat_evaluation_results.txt", "a") as f:
         f.write("ALS Evaluation Results\n")
         f.write("======================\n\n")
         for metric_name, value in results.items():
@@ -121,7 +110,9 @@ def main() -> None:
         f.write("\n")
 
     # Log results file as artifact
-    log_artifact(task, "evaluation_results", "models/als_evaluation_results.txt")
+    log_artifact(
+        task, "evaluation_results", "models/als_without_feat_evaluation_results.txt"
+    )
 
     # Complete the task
     task.close()

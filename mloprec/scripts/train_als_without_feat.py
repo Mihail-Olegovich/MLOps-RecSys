@@ -13,13 +13,13 @@ ITERATIONS = 10
 FACTOR = 128
 REGULARIZATION = 1
 ALPHA = 1.0
-FIT_FEATURES_TOGETHER = True
+FIT_FEATURES_TOGETHER = False
 
 
 def main() -> None:
     """Main function to train the ALS model."""
     # Initialize ClearML task
-    task = init_task(task_name="ALS Model with Features")
+    task = init_task(task_name="ALS Model without Features")
 
     # Log hyperparameters
     hyperparams = {
@@ -36,21 +36,15 @@ def main() -> None:
     # Pull data using DVC
     import subprocess
 
-    subprocess.run(
-        ["dvc", "pull", "data/train.csv.dvc", "data/cat_features.csv.dvc"], check=True
-    )
+    subprocess.run(["dvc", "pull", "data/train.csv.dvc"], check=True)
 
     df_train = pd.read_csv("data/train.csv")
-    df_features = pd.read_csv("data/cat_features.csv")
-
-    df_features = df_features.rename(columns={"node": "item_id"})
 
     # Log data statistics
     data_stats = {
         "train_rows": len(df_train),
         "unique_users": df_train["user_id"].nunique(),
         "unique_items": df_train["item_id"].nunique(),
-        "unique_features": df_features["feature"].nunique(),
     }
     log_parameters(task, {"data_stats": data_stats})
 
@@ -68,17 +62,15 @@ def main() -> None:
 
     dataset = Dataset.construct(
         interactions_df=df_train,
-        item_features_df=df_features,
-        cat_item_features=["category"],
     )
 
     model.fit(dataset)
 
-    model_path = "models/als_model.pkl"
+    model_path = "models/als_model_without_feat.pkl"
     model.save(model_path)
 
     # Log model as an artifact
-    log_model(task, model_path=model_path, model_name="ALS Model with Features")
+    log_model(task, model_path=model_path, model_name="ALS Model without Features")
 
     # Complete the task
     task.close()
