@@ -50,3 +50,23 @@ api-run-with-model:
 # Benchmark commands
 benchmark-simple:
 	poetry run python benchmark_simple.py --sample-size 20
+
+# Monitoring commands
+monitoring-up:
+	docker-compose up -d prometheus grafana node-exporter
+
+monitoring-down:
+	docker-compose stop prometheus grafana node-exporter
+
+monitoring-logs:
+	docker-compose logs -f prometheus grafana
+
+# Full stack commands
+stack-up:
+	docker-compose up -d
+
+stack-down:
+	docker-compose down -v
+
+stack-restart:
+	docker-compose restart

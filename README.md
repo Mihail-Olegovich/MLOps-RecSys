@@ -437,3 +437,121 @@ service/
 │   └── views.py         # API endpoints
 ├── run_api.py           # Server startup script
 ```
+
+## Monitoring with Prometheus and Grafana
+
+### Overview
+
+The project includes a complete monitoring system based on Prometheus and Grafana for tracking:
+- API performance (response time, request count)
+- Model quality (Recall@40 on validation set)
+- Model training and evaluation statistics
+- System metrics (CPU, memory, network)
+
+### Quick Start
+
+1. Start all services including monitoring:
+   ```bash
+   docker-compose up -d
+   ```
+
+2. Access interfaces:
+   - **API services**:
+     - ALS: http://localhost:8001
+     - LightFM: http://localhost:8002
+   - **Prometheus**: http://localhost:9090
+   - **Grafana**: http://localhost:3000 (admin/admin123)
+
+### Available Metrics
+
+#### API Metrics
+- `api_requests_total` - Total number of API requests
+- `api_request_duration_seconds` - Request execution time
+- `recommendations_total` - Number of recommendation requests
+- `model_training_total` - Number of model training sessions
+- `model_loads_total` - Number of model loads
+
+#### Model Quality Metrics
+- `model_recall_at_k` - Recall@K on validation set
+- `model_evaluations_total` - Number of model evaluations
+
+### API Endpoints for Monitoring
+
+#### Model Training
+```bash
+curl -X POST http://localhost:8001/models/train \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_type": "als",
+    "model_name": "test_als_model",
+    "hyperparameters": {"factors": 32, "iterations": 5}
+  }'
+```
+
+#### Model Quality Evaluation
+```bash
+curl -X POST http://localhost:8001/models/evaluate \
+  -H "Content-Type: application/json" \
+  -d '{"model_name": "test_als_model"}'
+```
+
+#### Prometheus Metrics
+```bash
+curl http://localhost:8001/metrics
+```
+
+### Grafana Dashboards
+
+The automatically configured "MLOps RecSys API Dashboard" includes:
+
+1. **API Request Rate** - Frequency of API requests
+2. **API Response Time** - API response time (95th and 50th percentiles)
+3. **Model Training Count** - Number of model training sessions per hour
+4. **Recommendation Request Rate** - Frequency of recommendation requests
+5. **Model Quality - Recall@K** - Model quality on validation set
+6. **Model Evaluations Count** - Number of model evaluations per hour
+
+### Monitoring Structure
+
+```
+monitoring/
+├── prometheus/
+│   └── prometheus.yml          # Prometheus configuration
+├── grafana/
+│   └── provisioning/
+│       ├── datasources/        # Data sources
+│       └── dashboards/         # Dashboards
+└── README.md                   # Detailed documentation
+```
+
+### Usage Examples
+
+1. **Real-time model quality monitoring**:
+   ```bash
+   # Train a model
+   curl -X POST http://localhost:8001/models/train \
+     -H "Content-Type: application/json" \
+     -d '{"model_type": "als", "model_name": "production_model"}'
+
+   # Evaluate quality
+   curl -X POST http://localhost:8001/models/evaluate \
+     -H "Content-Type: application/json" \
+     -d '{"model_name": "production_model"}'
+   ```
+
+2. **View metrics in Grafana**:
+   - Open http://localhost:3000
+   - Login as admin/admin123
+   - Navigate to "MLOps RecSys API Dashboard"
+   - Monitor model quality metrics in real-time
+
+3. **Prometheus queries**:
+   ```bash
+   # Current quality of all models
+   curl "http://localhost:9090/api/v1/query?query=model_recall_at_k_sum/model_recall_at_k_count"
+
+   # Number of evaluations in the last hour
+   curl "http://localhost:9090/api/v1/query?query=increase(model_evaluations_total[1h])"
+   ```
+
+The monitoring system automatically collects and visualizes all key metrics, enabling real-time tracking of recommendation system performance and quality.

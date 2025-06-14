@@ -109,3 +109,47 @@ class ErrorResponse(BaseModel):
     detail: str = Field(description="Error message")
     error_code: str | None = Field(default=None, description="Error code")
     timestamp: datetime | None = Field(default=None, description="Error timestamp")
+
+
+class TrainModelRequest(BaseModel):
+    """Request model for training a model."""
+
+    model_type: str = Field(description="Type of model to train (als or lightfm)")
+    model_name: str = Field(description="Name for the trained model")
+    hyperparameters: dict[str, Any] = Field(
+        default_factory=dict, description="Model hyperparameters"
+    )
+    use_features: bool = Field(
+        default=False, description="Whether to use item features"
+    )
+
+
+class TrainModelResponse(BaseModel):
+    """Response model for model training."""
+
+    status: str = Field(description="Training status")
+    message: str = Field(description="Status message")
+    model_name: str = Field(description="Name of the trained model")
+    model_path: str = Field(description="Path to the saved model")
+    training_time_seconds: float = Field(description="Training time in seconds")
+    data_stats: dict[str, Any] = Field(description="Training data statistics")
+    hyperparameters: dict[str, Any] = Field(description="Used hyperparameters")
+
+
+class EvaluateModelRequest(BaseModel):
+    """Request model for model evaluation."""
+
+    model_name: str = Field(description="Name of the model to evaluate")
+
+
+class EvaluateModelResponse(BaseModel):
+    """Response model for model evaluation."""
+
+    status: str = Field(description="Evaluation status")
+    model_name: str = Field(description="Name of the evaluated model")
+    recall_at_40: float = Field(description="Recall@40 metric value")
+    evaluation_time_seconds: float = Field(description="Evaluation time in seconds")
+    eval_users_count: int = Field(description="Number of users in evaluation set")
+    recommendations_generated: int = Field(
+        description="Total recommendations generated"
+    )

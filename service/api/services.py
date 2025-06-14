@@ -10,6 +10,9 @@ from rectools.dataset import Dataset
 
 from service.api.config import ModelConfig, get_data_path, get_models_path
 
+# Import metrics
+from .metrics import MODEL_EVALUATION_COUNT, MODEL_RECALL_AT_K
+
 
 class DataPreprocessingService:
     """Service for data preprocessing operations."""
@@ -171,7 +174,7 @@ class ModelService:
         self.current_model_name = model_name
         return True
 
-    def get_current_model(self) -> object | None:  # noqa: ANN401
+    def get_current_model(self) -> Any | None:  # noqa: ANN401
         """Get the currently loaded model object."""
         return self.current_model
 
@@ -372,3 +375,299 @@ class RecommendationService:
         processing_time = time.time() - start_time
 
         return recommendations, model_name, processing_time
+
+
+class ModelTrainingService:
+    """Service for training and saving models."""
+
+    def __init__(self) -> None:
+        """Initialize model training service."""
+        self.data_path = get_data_path()
+        self.models_path = get_models_path()
+
+    def train_model(
+        self,
+        model_type: str,
+        model_name: str,
+        hyperparameters: dict[str, Any] | None = None,
+        use_features: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Train a model with specified parameters.
+
+        Args:
+            model_type: Type of model ('als' or 'lightfm')
+            model_name: Name for the saved model
+            hyperparameters: Model hyperparameters
+            use_features: Whether to use item features
+
+        Returns:
+            Dictionary with training results
+        """
+        start_time = time.time()
+
+        # Validate model type
+        if model_type not in ["als", "lightfm"]:
+            raise ValueError(f"Unsupported model type: {model_type}")
+
+        # Load training data
+        train_file = self.data_path / "train.csv"
+        if not train_file.exists():
+            raise FileNotFoundError(f"Training data not found: {train_file}")
+
+        df_train = pd.read_csv(train_file)
+
+        # Load features if needed
+        df_features = None
+        if use_features:
+            features_file = self.data_path / "cat_features.csv"
+            if not features_file.exists():
+                raise FileNotFoundError(f"Features file not found: {features_file}")
+            df_features = pd.read_csv(features_file)
+            df_features = df_features.rename(columns={"node": "item_id"})
+
+        # Set default hyperparameters
+        if hyperparameters is None:
+            hyperparameters = {}
+
+        # Train model based on type
+        if model_type == "als":
+            model, final_hyperparams = self._train_als_model(
+                df_train, df_features, hyperparameters, use_features
+            )
+        else:  # lightfm
+            model, final_hyperparams = self._train_lightfm_model(
+                df_train, df_features, hyperparameters, use_features
+            )
+
+        # Save model
+        self.models_path.mkdir(exist_ok=True)
+        model_path = self.models_path / f"{model_name}.pkl"
+        model.save(str(model_path))
+
+        training_time = time.time() - start_time
+
+        # Prepare data statistics
+        data_stats = {
+            "train_rows": len(df_train),
+            "unique_users": df_train["user_id"].nunique(),
+            "unique_items": df_train["item_id"].nunique(),
+        }
+
+        if df_features is not None:
+            data_stats["unique_features"] = df_features["feature"].nunique()
+
+        return {
+            "status": "success",
+            "message": f"Model {model_name} trained successfully",
+            "model_name": model_name,
+            "model_path": str(model_path),
+            "training_time_seconds": training_time,
+            "data_stats": data_stats,
+            "hyperparameters": final_hyperparams,
+        }
+
+    def _train_als_model(
+        self,
+        df_train: pd.DataFrame,
+        df_features: pd.DataFrame | None,
+        hyperparameters: dict[str, Any],
+        use_features: bool,
+    ) -> tuple[Any, dict[str, Any]]:
+        """Train ALS model."""
+        from implicit.als import AlternatingLeastSquares
+        from rectools.models import ImplicitALSWrapperModel
+
+        # Default hyperparameters for ALS
+        default_params = {
+            "factors": 128,
+            "regularization": 1.0,
+            "alpha": 1.0,
+            "iterations": 10,
+            "random_state": 32,
+            "fit_features_together": True,
+        }
+
+        # Merge with provided hyperparameters
+        final_params = {**default_params, **hyperparameters}
+
+        # Create ALS model
+        als_model = AlternatingLeastSquares(
+            factors=final_params["factors"],
+            regularization=final_params["regularization"],
+            alpha=final_params["alpha"],
+            random_state=final_params["random_state"],
+            use_gpu=False,
+            iterations=final_params["iterations"],
+        )
+
+        model = ImplicitALSWrapperModel(
+            als_model,
+            fit_features_together=final_params["fit_features_together"],
+        )
+
+        # Create dataset
+        if use_features and df_features is not None:
+            dataset = Dataset.construct(
+                interactions_df=df_train,
+                item_features_df=df_features,
+                cat_item_features=["category"],
+            )
+        else:
+            dataset = Dataset.construct(interactions_df=df_train)
+
+        # Train model
+        model.fit(dataset)
+
+        return model, final_params
+
+    def _train_lightfm_model(
+        self,
+        df_train: pd.DataFrame,
+        df_features: pd.DataFrame | None,
+        hyperparameters: dict[str, Any],
+        use_features: bool,
+    ) -> tuple[Any, dict[str, Any]]:
+        """Train LightFM model."""
+        from lightfm import LightFM
+        from rectools.models import LightFMWrapperModel
+
+        # Default hyperparameters for LightFM
+        default_params = {
+            "no_components": 128,
+            "learning_rate": 0.05,
+            "loss": "warp",
+            "random_state": 32,
+            "max_sampled": 10,
+        }
+
+        # Merge with provided hyperparameters
+        final_params = {**default_params, **hyperparameters}
+
+        # Create LightFM model
+        lightfm_model = LightFM(
+            no_components=final_params["no_components"],
+            learning_rate=final_params["learning_rate"],
+            loss=final_params["loss"],
+            random_state=final_params["random_state"],
+            max_sampled=final_params["max_sampled"],
+        )
+
+        model = LightFMWrapperModel(lightfm_model)
+
+        # Create dataset
+        if use_features and df_features is not None:
+            dataset = Dataset.construct(
+                interactions_df=df_train,
+                item_features_df=df_features,
+                cat_item_features=["category"],
+            )
+        else:
+            dataset = Dataset.construct(interactions_df=df_train)
+
+        # Train model
+        model.fit(dataset)
+
+        return model, final_params
+
+
+class ModelEvaluationService:
+    """Service for evaluating models on validation set."""
+
+    def __init__(self) -> None:
+        """Initialize model evaluation service."""
+        self.data_path = get_data_path()
+
+    def evaluate_model(
+        self, model_name: str, model_service: ModelService
+    ) -> dict[str, Any]:
+        """
+        Evaluate a model on validation set using Recall@40.
+
+        Args:
+            model_name: Name of the model to evaluate
+            model_service: Model service instance
+
+        Returns:
+            Dictionary with evaluation results
+        """
+        start_time = time.time()
+
+        # Load evaluation data
+        eval_file = self.data_path / "eval.csv"
+        train_file = self.data_path / "train.csv"
+
+        if not eval_file.exists():
+            raise FileNotFoundError(f"Evaluation data not found: {eval_file}")
+        if not train_file.exists():
+            raise FileNotFoundError(f"Training data not found: {train_file}")
+
+        df_eval = pd.read_csv(eval_file)
+        df_train = pd.read_csv(train_file)
+
+        # Ensure model is loaded
+        if not model_service.set_current_model(model_name):
+            raise RuntimeError(f"Failed to load model {model_name}")
+
+        model = model_service.get_current_model()
+        if model is None:
+            raise RuntimeError(f"Model {model_name} is not loaded")
+
+        # Create dataset (same as in training)
+        dataset = Dataset.construct(interactions_df=df_train)
+
+        # Get unique evaluation users
+        eval_users = df_eval["user_id"].unique()
+
+        # Generate recommendations
+        k = 40
+        recos = model.recommend(
+            users=eval_users,
+            dataset=dataset,
+            k=k,
+            filter_viewed=True,
+        )
+
+        # Calculate Recall@40
+        recall_at_k = self._calculate_recall_at_k(recos, df_eval, k)
+
+        # Record metrics
+        MODEL_RECALL_AT_K.labels(model_name=model_name, k=str(k)).observe(recall_at_k)
+        MODEL_EVALUATION_COUNT.labels(model_name=model_name, status="success").inc()
+
+        evaluation_time = time.time() - start_time
+
+        return {
+            "status": "success",
+            "model_name": model_name,
+            "recall_at_40": recall_at_k,
+            "evaluation_time_seconds": evaluation_time,
+            "eval_users_count": len(eval_users),
+            "recommendations_generated": len(recos),
+        }
+
+    def _calculate_recall_at_k(
+        self, recos: pd.DataFrame, df_eval: pd.DataFrame, k: int
+    ) -> float:
+        """Calculate Recall@K metric."""
+        # Group recommendations by user
+        user_recos = recos.groupby("user_id")["item_id"].apply(set).to_dict()
+
+        # Group ground truth by user
+        user_truth = df_eval.groupby("user_id")["item_id"].apply(set).to_dict()
+
+        recalls = []
+        for user_id in user_truth.keys():
+            if user_id in user_recos:
+                recommended_items = user_recos[user_id]
+                true_items = user_truth[user_id]
+
+                # Calculate recall for this user
+                intersection = len(recommended_items.intersection(true_items))
+                recall = intersection / len(true_items) if len(true_items) > 0 else 0.0
+                recalls.append(recall)
+            else:
+                recalls.append(0.0)
+
+        # Return average recall
+        return sum(recalls) / len(recalls) if recalls else 0.0
