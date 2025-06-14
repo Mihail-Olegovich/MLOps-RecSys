@@ -5,7 +5,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from clearml import Task
+from clearml import Task  # type: ignore
 
 from mloprec.tracking import init_task, log_artifact
 

@@ -6,7 +6,7 @@ import subprocess
 import time
 from typing import Any
 
-from clearml import Task
+from clearml import Task  # type: ignore
 
 
 def init_task(
@@ -121,7 +121,7 @@ def get_model_from_clearml(
     Returns:
         Путь к загруженной модели
     """
-    from clearml import Model, Task
+    from clearml import Model, Task  # type: ignore
 
     if task_id:
         task = Task.get_task(task_id=task_id)

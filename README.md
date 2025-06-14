@@ -306,3 +306,252 @@ This project uses ClearML for experiment tracking, model management, and MLOps a
    - Access your ClearML Web UI at https://app.clear.ml/
    - Navigate to your project to view all experiments
    - Compare metrics, parameters, and artifacts between experiments
+
+## API Service
+
+### Overview
+
+The project includes a FastAPI-based web service that provides endpoints for:
+- Data preprocessing (integrating the `data_prep.py` logic)
+- Model management (loading and switching between models)
+- Generating recommendations
+- API statistics and health monitoring
+
+### Quick Start
+
+1. Install API dependencies:
+   ```bash
+   poetry install
+   ```
+
+2. Run the API server:
+   ```bash
+   python run_api.py
+   ```
+
+   Or with custom parameters:
+   ```bash
+   python run_api.py --host 0.0.0.0 --port 8000 --reload --model als_model
+   ```
+
+3. Access the API documentation:
+   - Swagger UI: http://localhost:8000/docs
+   - ReDoc: http://localhost:8000/redoc
+
+### API Endpoints
+
+#### Health and Status
+- `GET /` - Root endpoint with basic info
+- `GET /health` - Health check
+- `GET /api/v1/stats` - API statistics and model status
+
+#### Data Preprocessing
+- `POST /api/v1/data/prepare` - Prepare training and evaluation datasets
+  ```json
+  {
+    "eval_days_threshold": 14,
+    "force_rebuild": false
+  }
+  ```
+
+#### Model Management
+- `GET /api/v1/models` - List available models
+- `POST /api/v1/models/{model_name}/load` - Load a specific model
+- `POST /api/v1/models/{model_name}/activate` - Set model as active
+
+#### Recommendations
+- `POST /api/v1/recommend/user` - Get recommendations for a user
+  ```json
+  {
+    "user_id": 123,
+    "top_k": 10,
+    "exclude_seen": true
+  }
+  ```
+
+- `POST /api/v1/recommend/batch` - Get recommendations for multiple users
+  ```json
+  {
+    "user_ids": [123, 456, 789],
+    "top_k": 10,
+    "exclude_seen": true
+  }
+  ```
+
+#### User Validation
+- `GET /api/v1/validate/user/{user_id}` - Check if user exists in training data
+
+### Configuration
+
+The API can be configured via environment variables or the `service/api/config.py` file:
+
+```bash
+# Server settings
+export API_HOST=0.0.0.0
+export API_PORT=8000
+export API_RELOAD=true
+
+# Model settings
+export DEFAULT_MODEL=als_model
+export MODELS_DIR=models
+export DATA_DIR=data
+
+# Performance settings
+export MAX_RECOMMENDATIONS=100
+export MAX_BATCH_SIZE=1000
+```
+
+### Data Preprocessing via API
+
+The API integrates the data preprocessing logic from `mloprec/scripts/data_prep.py` into a web endpoint. This means:
+
+1. **Input Validation**: The API validates request parameters (eval_days_threshold, force_rebuild)
+2. **Data Processing**: Applies the same logic as the original script:
+   - Loads raw clickstream and event data
+   - Splits data based on time threshold
+   - Filters for contact events
+   - Creates clean train/eval datasets
+3. **Response**: Returns statistics about the processed data
+4. **Caching**: Supports using existing processed data unless force_rebuild=true
+
+### Model Integration
+
+The API supports loading and using trained models:
+
+1. **Model Loading**: Loads pickle files from the `models/` directory
+2. **Multi-Model Support**: Can load multiple models simultaneously
+3. **Model Switching**: Switch between loaded models without restarting
+4. **Preprocessing Integration**: Automatically handles data preprocessing for recommendations
+
+### Project Structure
+
+```
+service/
+├── __init__.py
+├── api/
+│   ├── __init__.py
+│   ├── app.py           # FastAPI application
+│   ├── config.py        # Configuration settings
+│   ├── schemas.py       # Pydantic models
+│   ├── services.py      # Business logic
+│   └── views.py         # API endpoints
+├── run_api.py           # Server startup script
+```
+
+## Monitoring with Prometheus and Grafana
+
+### Overview
+
+The project includes a complete monitoring system based on Prometheus and Grafana for tracking:
+- API performance (response time, request count)
+- Model quality (Recall@40 on validation set)
+- Model training and evaluation statistics
+- System metrics (CPU, memory, network)
+
+### Quick Start
+
+1. Start all services including monitoring:
+   ```bash
+   docker-compose up -d
+   ```
+
+2. Access interfaces:
+   - **API services**:
+     - ALS: http://localhost:8001
+     - LightFM: http://localhost:8002
+   - **Prometheus**: http://localhost:9090
+   - **Grafana**: http://localhost:3000 (admin/admin123)
+
+### Available Metrics
+
+#### API Metrics
+- `api_requests_total` - Total number of API requests
+- `api_request_duration_seconds` - Request execution time
+- `recommendations_total` - Number of recommendation requests
+- `model_training_total` - Number of model training sessions
+- `model_loads_total` - Number of model loads
+
+#### Model Quality Metrics
+- `model_recall_at_k` - Recall@K on validation set
+- `model_evaluations_total` - Number of model evaluations
+
+### API Endpoints for Monitoring
+
+#### Model Training
+```bash
+curl -X POST http://localhost:8001/models/train \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_type": "als",
+    "model_name": "test_als_model",
+    "hyperparameters": {"factors": 32, "iterations": 5}
+  }'
+```
+
+#### Model Quality Evaluation
+```bash
+curl -X POST http://localhost:8001/models/evaluate \
+  -H "Content-Type: application/json" \
+  -d '{"model_name": "test_als_model"}'
+```
+
+#### Prometheus Metrics
+```bash
+curl http://localhost:8001/metrics
+```
+
+### Grafana Dashboards
+
+The automatically configured "MLOps RecSys API Dashboard" includes:
+
+1. **API Request Rate** - Frequency of API requests
+2. **API Response Time** - API response time (95th and 50th percentiles)
+3. **Model Training Count** - Number of model training sessions per hour
+4. **Recommendation Request Rate** - Frequency of recommendation requests
+5. **Model Quality - Recall@K** - Model quality on validation set
+6. **Model Evaluations Count** - Number of model evaluations per hour
+
+### Monitoring Structure
+
+```
+monitoring/
+├── prometheus/
+│   └── prometheus.yml          # Prometheus configuration
+├── grafana/
+│   └── provisioning/
+│       ├── datasources/        # Data sources
+│       └── dashboards/         # Dashboards
+└── README.md                   # Detailed documentation
+```
+
+### Usage Examples
+
+1. **Real-time model quality monitoring**:
+   ```bash
+   # Train a model
+   curl -X POST http://localhost:8001/models/train \
+     -H "Content-Type: application/json" \
+     -d '{"model_type": "als", "model_name": "production_model"}'
+
+   # Evaluate quality
+   curl -X POST http://localhost:8001/models/evaluate \
+     -H "Content-Type: application/json" \
+     -d '{"model_name": "production_model"}'
+   ```
+
+2. **View metrics in Grafana**:
+   - Open http://localhost:3000
+   - Login as admin/admin123
+   - Navigate to "MLOps RecSys API Dashboard"
+   - Monitor model quality metrics in real-time
+
+3. **Prometheus queries**:
+   ```bash
+   # Current quality of all models
+   curl "http://localhost:9090/api/v1/query?query=model_recall_at_k_sum/model_recall_at_k_count"
+
+   # Number of evaluations in the last hour
+   curl "http://localhost:9090/api/v1/query?query=increase(model_evaluations_total[1h])"
+   ```
+
+The monitoring system automatically collects and visualizes all key metrics, enabling real-time tracking of recommendation system performance and quality.

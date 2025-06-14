@@ -1,51 +1,33 @@
-FROM python:3.11-slim AS base
+FROM python:3.11-slim
 
-# Set up environment
-ENV PYTHONFAULTHANDLER=1 \
-    PYTHONHASHSEED=random \
-    PYTHONUNBUFFERED=1
-
-WORKDIR /app
-
-# Install Poetry using pip
-ENV POETRY_VERSION=1.7.1 \
-    POETRY_VIRTUALENVS_CREATE=false \
-    PIP_DEFAULT_TIMEOUT=300
-
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir "poetry==$POETRY_VERSION"
-
-# Copy poetry configuration files
-COPY pyproject.toml ./
-COPY poetry.lock ./
-
-FROM base AS development
-
-# Install development dependencies
-RUN poetry install --no-interaction --no-ansi
-
-# Copy project files
-COPY . .
-
-FROM base AS production
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir --upgrade pip && \
-    poetry config installer.max-workers 4 && \
-    poetry install --without dev --no-interaction --no-ansi --no-root || true && \
-    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+# Set work directory
+WORKDIR /app
 
-# Copy project files
+# Copy requirements file
+COPY requirements-api.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements-api.txt
+
+# Copy application code
 COPY . .
 
+# Expose port
+EXPOSE 8000
 
-RUN pip install -e .
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
-# Create data directory with appropriate permissions
-RUN mkdir -p /app/data && \
-    chmod 777 /app/data
-
-CMD ["python", "-m", "mloprec"]
+# Run the application
+CMD ["python", "run_api.py", "--host", "0.0.0.0", "--port", "8000"]
